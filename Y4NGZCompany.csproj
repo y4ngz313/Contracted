@@ -1,0 +1,386 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="../Shared/MoonCatalogueDetailRow.cs" Link="Compat/MoonCatalogueDetailRow.cs" />
+    <Compile Include="../Shared/MoonCatalogueColumns.cs" Link="Compat/MoonCatalogueColumns.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);Y4NGZ_LOCAL_JAMB_CLIPPER</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Keep the visual helper local so older Core packages do not block plugin startup. -->
+    <Compile Include="../Y4NGZCore/Facility/Shared/SlidingLeafJambClipper.cs" Link="Compat/SlidingLeafJambClipper.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);Y4NGZ_LOCAL_HUD_HOST</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Compile the stateless host locally as well: older Core packages lack this type. -->
+    <Compile Include="../Y4NGZCore/Modules/Hud/VanillaHudCanvasHost.cs" Link="Compat/VanillaHudCanvasHost.cs" />
+    <Compile Include="../Shared/OptionalUnderPauseMenuSignal.cs" Link="Compat/OptionalUnderPauseMenuSignal.cs" />
+  </ItemGroup>
+
+  <Import Project="..\..\bundy-bundle.active.props" Condition="Exists('..\..\bundy-bundle.active.props')" />
+  <Import Project="..\..\bundy-bundle.local.props" Condition="Exists('..\..\bundy-bundle.local.props')" />
+
+  <!-- Shared settings (TargetFramework, LangVersion, GameManagedDir, TestProfileRoot,
+       BepInEx paths, CompanyRepoRoot, restore sources) live in ..\Directory.Build.props. -->
+  <PropertyGroup>
+    <AssemblyName>Y4NGZCompany</AssemblyName>
+    <RootNamespace>Y4NGZCompany</RootNamespace>
+    <Description>Y4NGZ contracts, performance-linked quota adjustments, facility objectives, escalations, and Bundy</Description>
+    <Version>1.0.0</Version>
+    <DefineConstants>$(DefineConstants);Y4NGZCOMPANY_CUSTOMPASS_PUBLIC</DefineConstants>
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Gale names a locally imported package's plugin directory after the package, so a
+         re-imported profile holds `Y4NGZCompany` while older profiles hold the hand-made
+         `y4ngz-Y4NGZCompany`. Deploying into the directory the profile does not load from is
+         silent: BepInEx keeps running the other copy and the build looks applied. Prefer the
+         directory that exists, newest layout first. -->
+    <DeployTarget Condition="'$(DeployTarget)' == '' and Exists('$(BepInExPlugins)\Y4NGZCompany')">$(BepInExPlugins)\Y4NGZCompany</DeployTarget>
+    <DeployTarget Condition="'$(DeployTarget)' == ''">$(BepInExPlugins)\y4ngz-Y4NGZCompany</DeployTarget>
+    <DawnLibReferencePath Condition="'$(DawnLibReferencePath)' == '' and Exists('$(BepInExPlugins)\TeamXiaolan-DawnLib\DawnLib\com.github.teamxiaolan.dawnlib.dll')">$(BepInExPlugins)\TeamXiaolan-DawnLib\DawnLib\com.github.teamxiaolan.dawnlib.dll</DawnLibReferencePath>
+    <LethalNetworkApiReferencePath Condition="'$(LethalNetworkApiReferencePath)' == '' and Exists('$(BepInExPlugins)\xilophor-LethalNetworkAPI\LethalNetworkAPI\LethalNetworkAPI.dll')">$(BepInExPlugins)\xilophor-LethalNetworkAPI\LethalNetworkAPI\LethalNetworkAPI.dll</LethalNetworkApiReferencePath>
+    <ContractsBundleSourcePath Condition="Exists('..\..\runtime-assets\lgucontracts.bundle')">..\..\runtime-assets\lgucontracts.bundle</ContractsBundleSourcePath>
+    <ContractsBundleSourcePath Condition="'$(ContractsBundleSourcePath)' == ''">C:\Unity\Projects\LethalModAssets_v2\Assets\AssetBundles\lgucontracts.bundle</ContractsBundleSourcePath>
+    <BundyBundleSourcePath Condition="'$(BundyBundleSourcePath)' == '' and Exists('..\..\runtime-assets\bundy.bundle')">..\..\runtime-assets\bundy.bundle</BundyBundleSourcePath>
+    <BundyBundleSourcePath Condition="'$(BundyBundleSourcePath)' == ''">C:\Unity\Projects\LethalModAssets_v2\AssetBundles\StandaloneWindows\bundy.bundle</BundyBundleSourcePath>
+    <BundyVictimFinishersBundleSourcePath Condition="Exists('..\..\runtime-assets\y4ngz-bundy-victim-finishers.animationbundle')">..\..\runtime-assets\y4ngz-bundy-victim-finishers.animationbundle</BundyVictimFinishersBundleSourcePath>
+    <BundyVictimFinishersBundleSourcePath Condition="'$(BundyVictimFinishersBundleSourcePath)' == ''">C:\Unity\Projects\LethalModAssets_v2\AssetBundles\StandaloneWindows\y4ngz-bundy-victim-finishers.animationbundle</BundyVictimFinishersBundleSourcePath>
+    <!-- #614 task 3.1: MonitorTakeoverLegacyBundleSourcePath moved to
+         Y4NGZMonitorTakeover.csproj with the loader that reads it. TakeoverBootstrap.LoadBundle
+         resolves relative to Assembly.GetExecutingAssembly().Location with no fallback, so the
+         payload has to ship in the Monitor Takeover plugin directory, not this one. See the
+         retire list in NetcodePatchAndDeploy for the profile-side cleanup of a pre-#614 install. -->
+    <PestLeverAnimationBundleSourcePath Condition="Exists('..\..\runtime-assets\y4ngz-pestlever.animationbundle')">..\..\runtime-assets\y4ngz-pestlever.animationbundle</PestLeverAnimationBundleSourcePath>
+    <PestLeverAnimationBundleSourcePath Condition="'$(PestLeverAnimationBundleSourcePath)' == ''">C:\Unity\Projects\LethalModAssets_v2\AssetBundles\StandaloneWindows\y4ngz-pestlever.animationbundle</PestLeverAnimationBundleSourcePath>
+    <!-- #613 task 2.1: the three fuel bundle properties moved to Y4NGZShipSystems.csproj with
+         the loaders that read them. Every fuel loader resolves its own assembly's directory
+         first, so the payload has to ship in the Ship Systems plugin directory, not this one. -->
+    <!-- #416: the Y4NGZ Stadium / ending map is deprecated and no longer ships. Its
+         ~376 MB of local-only bundles under runtime-assets\y4ngz-stadium\ stay on disk
+         for whoever revives the feature, but nothing here packages, deploys or requires
+         them; the runtime treats the missing moon as "endgame disabled". -->
+    <NetcodePatchDependencyFile>$(MSBuildProjectDirectory)\obj\$(Configuration)\netcode-patch-dependencies.txt</NetcodePatchDependencyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" PrivateAssets="all" />
+    <PackageReference Include="Evaisa.LethalLib" Version="1.2.0" PrivateAssets="all" />
+    <PackageReference Include="HarmonyX" Version="2.10.2" PrivateAssets="all" />
+    <PackageReference Include="LethalCompany.GameLibs.Steam" Version="81.0.5-ngd.0" Publicize="true" PrivateAssets="all" />
+    <PackageReference Include="Rune580.Mods.LethalCompany.InputUtils" Version="0.7.13" PrivateAssets="all" />
+    <PackageReference Include="Sigurd.BepInEx.CSync" Version="5.0.1" PrivateAssets="all" />
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.62" IncludeAssets="compile" PrivateAssets="all" />
+    <PackageReference Include="Xilophor.LethalNetworkAPI" Version="3.4.2" PrivateAssets="all" Condition="'$(LethalNetworkApiReferencePath)' == ''" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="DunGen">
+      <HintPath>$(GameManagedDir)\DunGen.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>$(GameManagedDir)\Unity.InputSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Netcode.Components">
+      <HintPath>$(GameManagedDir)\Unity.Netcode.Components.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Netcode.Runtime">
+      <HintPath>$(GameManagedDir)\Unity.Netcode.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(GameManagedDir)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule">
+      <HintPath>$(GameManagedDir)\UnityEngine.AssetBundleModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AIModule">
+      <HintPath>$(GameManagedDir)\UnityEngine.AIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(GameManagedDir)\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>$(GameManagedDir)\UnityEngine.ParticleSystemModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.VFXModule">
+      <HintPath>$(GameManagedDir)\UnityEngine.VFXModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(GameManagedDir)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="com.github.teamxiaolan.dawnlib" Condition="'$(DawnLibReferencePath)' != ''">
+      <HintPath>$(DawnLibReferencePath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="LethalNetworkAPI" Condition="'$(LethalNetworkApiReferencePath)' != ''">
+      <HintPath>$(LethalNetworkApiReferencePath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Private=false: each sibling plugin deploys its own DLL, so copying them into
+       this project's output would put a second copy in the profile. LethalCCTV is
+       deliberately absent - that direction stays reflection-only. So is Y4NGZUI
+       (#731): it is an optional companion, and Contracted reads its substrate
+       through Y4NGZCore's neutral signals instead of the assembly. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Y4NGZCore\Y4NGZCore.csproj" Private="false" />
+    <ProjectReference Include="..\Y4NGZBloodFX\Y4NGZBloodFX.csproj" Private="false" />
+    <ProjectReference Include="..\Y4NGZAtmosphere\Y4NGZAtmosphere.csproj" Private="false" />
+  </ItemGroup>
+
+  <!-- No <Compile> items: since #149 every source file lives under this project
+       directory and the plain SDK glob compiles it. Sideways ..\ globs are gone. -->
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <CompressedContractAudioMasters Include="assets\audio\contracts\WasteDisposal\*.wav;assets\audio\contracts\Payload\*.wav" />
+    <CompressedBundyAudioMasters Include="assets\audio\bundy\*.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\runtime-assets\y4ngz-contracted-audio.bundle" Link="y4ngz-contracted-audio.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-contracted-audio.bundle')" />
+    <Content Include="assets\audio\contracts\**\*.mp3" Link="ContractAudio\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="assets\audio\contracts\**\*.wav" Exclude="@(CompressedContractAudioMasters)" Link="ContractAudio\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="assets\audio\contracts\**\*.ogg" Link="ContractAudio\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="assets\images\contracts\**\*.png" Link="ContractImages\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="assets\icons\ShadowRaid\*.png" LogicalName="ShadowRaidIcons.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="assets\audio\contracts\Blacksite\Footsteps\*.wav" />
+    <EmbeddedResource Include="assets\audio\contracts\Blacksite\Baton\*.wav" />
+    <Content Include="$(ContractsBundleSourcePath)" Link="lgucontracts.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(ContractsBundleSourcePath)')" />
+
+    <Content Include="$(PestLeverAnimationBundleSourcePath)" Link="y4ngz-pestlever.animationbundle" CopyToOutputDirectory="Always" Condition="Exists('$(PestLeverAnimationBundleSourcePath)')" />
+    <Content Include="..\..\runtime-assets\y4ngz-pestlever.manifest.json" Link="y4ngz-pestlever.manifest.json" CopyToOutputDirectory="Always" Condition="Exists('..\..\runtime-assets\y4ngz-pestlever.manifest.json')" />
+    <!-- #618 audited the legacy Joystick tree: its source is absent from a clean checkout and
+         no runtime loader consumes it. It is intentionally retired instead of being copied into
+         Contracted by a machine-local conditional path. -->
+
+    <Content Include="$(BundyBundleSourcePath)" Link="bundy.bundle" CopyToOutputDirectory="Always" Condition="Exists('$(BundyBundleSourcePath)')" />
+    <Content Include="$(BundyVictimFinishersBundleSourcePath)" Link="y4ngz-bundy-victim-finishers.animationbundle" CopyToOutputDirectory="Always" Condition="Exists('$(BundyVictimFinishersBundleSourcePath)')" />
+    <Content Include="..\..\runtime-assets\y4ngz-bundy-victim-finishers.manifest.json" Link="y4ngz-bundy-victim-finishers.manifest.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-bundy-victim-finishers.manifest.json')" />
+    <Content Include="..\..\runtime-assets\bundy_paired_actions.json" Link="bundy_paired_actions.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\bundy_paired_actions.json')" />
+    <!-- #761: the optional burlap-sack sidecar for the vanilla-friendly Stranger. Absent-safe:
+         the runtime builds a placeholder when this file is missing, so nothing here is required. -->
+    <Content Include="..\..\runtime-assets\y4ngz-shadow-raid-surfaces.bundle" Link="y4ngz-shadow-raid-surfaces.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-shadow-raid-surfaces.bundle')" />
+    <Content Include="..\..\runtime-assets\y4ngz-whistleblower.bundle" Link="y4ngz-whistleblower.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-whistleblower.bundle')" />
+    <Content Include="..\..\runtime-assets\y4ngz-congregants.bundle" Link="y4ngz-congregants.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-congregants.bundle')" />
+    <Content Include="..\..\runtime-assets\y4ngz-congregation-props.bundle" Link="y4ngz-congregation-props.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-congregation-props.bundle')" />
+    <Content Include="..\..\runtime-assets\y4ngz-seraphim.bundle" Link="y4ngz-seraphim.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-seraphim.bundle')" />
+    <!-- #897: approved employee body; runtime retains the sack when the sidecar is absent. -->
+    <Content Include="..\..\runtime-assets\y4ngz-stranger-employee.bundle" Link="y4ngz-stranger-employee.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-stranger-employee.bundle')" />
+    <Content Include="..\..\runtime-assets\y4ngz-bundy-sack.bundle" Link="y4ngz-bundy-sack.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-bundy-sack.bundle')" />
+    <!-- #1197: the objective hint's outline shaders. Same source bundle LethalCCTV ships, under a
+         distinct name: .bundle (NOT .lethalbundle) so LethalLevelLoader leaves it for our own
+         AssetBundle.LoadFromFile, and not LethalCCTV's y4ngz-outlineeffect.bundle, which this
+         project's deploy retires from its folder. ObjectiveOutlineAssets probes the loaded
+         bundles first, so whichever package loads it first, the other reuses it. -->
+    <Content Include="..\..\runtime-assets\y4ngz-outlineeffect.lethalbundle" Link="contracted-outlineeffect.bundle" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\runtime-assets\y4ngz-outlineeffect.lethalbundle')" />
+    <Content Include="assets\audio\bundy\*.wav" Condition="'$(Configuration)' != 'Release'" Link="bundy-audio\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The three stadium <Content> items were removed by #416. See the property-group note above. -->
+  </ItemGroup>
+
+  <Target Name="ValidateY4NGZCompanyReferencePaths" BeforeTargets="ResolveReferences">
+    <Error Text="Missing DawnLib reference. Install TeamXiaolan-DawnLib 0.9.25 in TestProfileRoot or set DawnLibReferencePath." Condition="'$(DawnLibReferencePath)' == ''" />
+    <!-- #416 removed the three stadium bundle Errors. They hard-failed every build in a
+         worktree that lacked the gitignored, now-deprecated map payload. -->
+  </Target>
+
+  <Target Name="PrepareCompressedContractAudio" BeforeTargets="GetCopyToOutputDirectoryItems" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(CompanyRepoRoot)\release\verify-contracted-audio.ps1&quot; -RepoRoot &quot;$(CompanyRepoRoot)&quot;" />
+    <ItemGroup>
+      <RetiredAudioOutput Include="@(CompressedBundyAudioMasters->'$(OutputPath)bundy-audio\%(Filename)%(Extension)')" />
+      <RetiredAudioOutput Include="$(OutputPath)ContractAudio\WasteDisposal\*.wav;$(OutputPath)ContractAudio\Payload\*.wav" />
+    </ItemGroup>
+    <Delete Files="@(RetiredAudioOutput)" />
+  </Target>
+
+  <ItemGroup>
+    <Content Include="..\..\runtime-assets\blacksite-equipment.bundle" Condition="Exists('..\..\runtime-assets\blacksite-equipment.bundle')" Link="blacksite-equipment.bundle" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\runtime-assets\blacksite-ship.bundle" Condition="Exists('..\..\runtime-assets\blacksite-ship.bundle')" Link="blacksite-ship.bundle" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="NetcodePatchAndDeploy" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <WriteLinesToFile File="$(NetcodePatchDependencyFile)" Lines="@(ReferencePathWithRefAssemblies->'%(Identity)')" Overwrite="true" />
+    <!-- #613 task 2.2 (V3): delete last build's weave marker FIRST, so the Error below tests
+         THIS build. bin\Release is incremental - without this, a build that wove successfully
+         leaves <assembly>_original.dll behind, and a later build that silently skips (exit 0,
+         e.g. DebugType went to none) satisfies Exists() with the stale artifact and ships an
+         unwoven DLL past the guard. The marker has to be evidence of the run being guarded, not
+         of any run. -->
+    <Delete Files="$(OutputPath)$(AssemblyName)_original.dll" />
+    <Exec Command="netcode-patch -uv 2022.3.9 -nv 1.12.0 -tv 1.0.0 &quot;$(TargetPath)&quot; --dependency-file &quot;$(NetcodePatchDependencyFile)&quot;" ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="NetcodePatchOutput" />
+    </Exec>
+    <!-- The tool has TWO ways of not weaving, and only one of them is a fault.
+         "already been patched" happens on a repeat Release build: MSBuild skips the compile when
+         nothing changed, but this AfterTargets="Build" target still runs, so $(TargetPath) is the
+         DLL the PREVIOUS build already wove. That is correct and must not fail the build - but the
+         Delete above has just removed the marker, so Exists() alone would report it as a failure.
+         The dangerous case - "Couldn't find debug information ... forced to skip" - prints no such
+         line, so distinguishing them by the tool's own output is exact rather than heuristic.
+         Verified against NetcodePatcher 4.5.0 by running both paths against Debug DLL copies. -->
+    <PropertyGroup>
+      <NetcodePatchAlreadyWoven>$(NetcodePatchOutput.Contains('already been patched'))</NetcodePatchAlreadyWoven>
+    </PropertyGroup>
+    <!-- #613 task 2.2 (V2): netcode-patch EXITS 0 when it skips. Verified with the shipped
+         tool (NetcodePatcher 4.5.0): with no .pdb beside the assembly it logs
+         "Couldn't find debug information (X.dll), forced to skip" and returns success, so the
+         Exec above passes and an UNWOVEN assembly is deployed - every RPC in the package then
+         silently never arrives, and NetcodeRuntimeBootstrap.Initialize throws at Awake. The
+         tool writes <assembly>_original.dll next to the output only when it actually patched,
+         so its absence is the one reliable signal that the weave did not happen. Fail the
+         build here rather than discover it in a lobby. -->
+    <Error Condition="!Exists('$(OutputPath)$(AssemblyName)_original.dll') And '$(NetcodePatchAlreadyWoven)' != 'true'" Text="netcode-patch did not weave $(AssemblyName).dll - no $(AssemblyName)_original.dll was produced. The tool exits 0 when it skips (most often: no $(AssemblyName).pdb beside the assembly, e.g. DebugType set to none). Do not deploy this build." />
+    <!-- #1262 P6: the 2026-09-29 playtest ran a profile deploy that kept a stale 991d75d4
+         lgucontracts.bundle. Gate the bin copy, which is what the deploy below ships:
+         PreserveNewest can keep an older bin copy when a source is swapped. Runs before any
+         deploy step, so a mismatch leaves $(DeployTarget) untouched. -->
+    <GetFileHash Files="$(OutputPath)lgucontracts.bundle" Algorithm="SHA256" Condition="Exists('$(OutputPath)lgucontracts.bundle')">
+      <Output TaskParameter="Hash" PropertyName="ContractsBundleActualHash" />
+    </GetFileHash>
+    <ReadLinesFromFile File="$(MSBuildThisFileDirectory)..\..\runtime-assets\lgucontracts.bundle.sha256" Condition="'$(ContractsBundleActualHash)' != ''">
+      <Output TaskParameter="Lines" ItemName="ContractsBundleRecordLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup Condition="'$(ContractsBundleActualHash)' != ''">
+      <ContractsBundleRecord>@(ContractsBundleRecordLines)</ContractsBundleRecord>
+    </PropertyGroup>
+    <Error Condition="'$(ContractsBundleActualHash)' != '' And $(ContractsBundleRecord.Length) &lt; 64" Text="runtime-assets/lgucontracts.bundle.sha256 is missing or malformed (expected 64 hex chars first), so $(OutputPath)lgucontracts.bundle cannot be checked." />
+    <PropertyGroup Condition="'$(ContractsBundleActualHash)' != ''">
+      <ContractsBundleActualHash>$(ContractsBundleActualHash.ToLowerInvariant())</ContractsBundleActualHash>
+      <ContractsBundleExpectedHash>$(ContractsBundleRecord.Substring(0, 64).ToLowerInvariant())</ContractsBundleExpectedHash>
+      <ContractsBundleMismatchMessage Condition="'$(ContractsBundleActualHash)' != '$(ContractsBundleExpectedHash)'">lgucontracts.bundle hash mismatch: $(OutputPath)lgucontracts.bundle is $(ContractsBundleActualHash.Substring(0, 16)), but runtime-assets/lgucontracts.bundle.sha256 records $(ContractsBundleExpectedHash.Substring(0, 16)) (expected $(ContractsBundleExpectedHash)). Promote the expected bundle, or build with /p:AllowContractsBundleMismatch=true for a deliberate experiment.</ContractsBundleMismatchMessage>
+    </PropertyGroup>
+    <Error Condition="'$(ContractsBundleMismatchMessage)' != '' And '$(AllowContractsBundleMismatch)' != 'true'" Text="$(ContractsBundleMismatchMessage)" />
+    <Warning Condition="'$(ContractsBundleMismatchMessage)' != '' And '$(AllowContractsBundleMismatch)' == 'true'" Text="$(ContractsBundleMismatchMessage)" />
+    <MakeDir Directories="$(DeployTarget)" />
+    <ItemGroup>
+      <RetiredBundyWavDeploy Include="@(CompressedBundyAudioMasters->'$(DeployTarget)\bundy-audio\%(Filename)%(Extension)')" />
+    </ItemGroup>
+    <Delete Files="@(RetiredBundyWavDeploy)" />
+    <Copy SourceFiles="$(BundyBundleSourcePath)" DestinationFiles="$(OutputPath)bundy.bundle" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Condition="Exists('$(BundyBundleSourcePath)')" />
+    <ItemGroup>
+      <LegacyFoldedModuleOutputs Include="$(DeployTarget)\LGUContractHUD.dll;$(DeployTarget)\LGUContractHUD.pdb;$(DeployTarget)\LGUShipSystems.dll;$(DeployTarget)\LGUShipSystems.pdb;$(DeployTarget)\LGUTerminal.dll;$(DeployTarget)\LGUTerminal.pdb;$(DeployTarget)\LGUShop.dll;$(DeployTarget)\LGUShop.pdb;$(DeployTarget)\LGUMonitorTakeover.dll;$(DeployTarget)\LGUMonitorTakeover.pdb;$(DeployTarget)\Bundy.dll;$(DeployTarget)\Bundy.pdb" />
+      <LegacyFoldedModuleOutputs Include="$(BepInExPlugins)\y4ngz-Y4NGZUpgrades\LGUContractHUD.dll;$(BepInExPlugins)\y4ngz-Y4NGZUpgrades\LGUContractHUD.pdb;$(BepInExPlugins)\y4ngz-Y4NGZUpgrades\lgucontracts.bundle" />
+      <LegacyFoldedModuleOutputs Include="$(BepInExPlugins)\y4ngz-Y4NGZMonsters\Bundy.dll;$(BepInExPlugins)\y4ngz-Y4NGZMonsters\Bundy.pdb;$(BepInExPlugins)\y4ngz-Y4NGZMonsters\bundy.bundle" />
+      <!-- #393 split the merged assembly into five packages. Everything below now ships
+           in a sibling package's own plugin directory, but a profile that ran the merged
+           build still holds this project's copy in $(DeployTarget). Those copies are not
+           loaded from here any more, they just shadow the real ones in a directory
+           listing and waste profile space, so retire them the same way the pre-fold
+           module DLLs above are retired. Wildcards: the Copy below no longer produces
+           any of these names, so nothing this build writes can be caught by them. -->
+      <SplitOutModuleAssets Include="$(DeployTarget)\LethalCCTV.dll;$(DeployTarget)\LethalCCTV.pdb" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\Y4NGZCore.dll;$(DeployTarget)\Y4NGZCore.pdb" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\Y4NGZBloodFX.dll;$(DeployTarget)\Y4NGZBloodFX.pdb" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\Y4NGZAtmosphere.dll;$(DeployTarget)\Y4NGZAtmosphere.pdb" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\lethalcctv-*;$(DeployTarget)\y4ngz-cctv-*;$(DeployTarget)\y4ngz-outlineeffect.bundle;$(DeployTarget)\shipturret.turretbundle;$(DeployTarget)\camera-placement-reviews.json" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\y4ngz-bloodfx.bundle;$(DeployTarget)\y4ngz-bloodfx.manifest.json" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\interior-authored-placements.json" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\Assets\Audio\**\*.*" />
+      <!-- #416 de-shipped the stadium/ending map. A profile that ran an earlier build
+           still holds ~376 MB of it, and this project's own bin\ can still hold the
+           copies a pre-#416 build produced, which the wildcards below would happily
+           redeploy. Retire them from the profile the same way the pre-split payloads
+           above are retired. -->
+      <SplitOutModuleAssets Include="$(DeployTarget)\y4ngz_endgame_main.duskmod;$(DeployTarget)\Assets\y4ngz_endgame_definition;$(DeployTarget)\Assets\y4ngz_endgame_scene" />
+      <!-- #429 stopped redistributing the Wider Ship Mod / 2 Story Ship bundles; they now
+           come from the user-installed mborsh-Wider_Ship_Mod / MelanieMelicious 2 Story Ship
+           packages and must not be shipped by us. A profile that ran a pre-#429 build still
+           holds our old copies at $(DeployTarget)\newship and \melanieship2story; retire them
+           the same way the pre-fold and pre-#416 payloads above are retired. -->
+      <SplitOutModuleAssets Include="$(DeployTarget)\newship;$(DeployTarget)\melanieship2story" />
+      <!-- #613 task 2.1 split Ship Systems into its own package. A profile that ran a pre-#613
+           build still holds this project's copies of the fuel bundles, the battery model and
+           textures, and the battery/oil-rig audio cues. They are not loaded from here any more -
+           Y4NGZShipSystems reads them from its OWN plugin directory - but BatteryAssetLoader
+           resolves purely relative to the loading assembly with no fallback, so a stale copy here
+           is dead weight rather than a shadow. Retire them the same way the pre-fold, pre-#416
+           and pre-#429 payloads above are retired. Wildcards are safe: the Copy below no longer
+           produces any of these names. -->
+      <SplitOutModuleAssets Include="$(DeployTarget)\y4ngz-fuel-chute.bundle;$(DeployTarget)\y4ngz-oil-refinery.bundle;$(DeployTarget)\y4ngz-fuel-items.bundle" />
+      <SplitOutModuleAssets Include="$(DeployTarget)\Assets\Battery\**\*.*" />
+      <!-- #614 task 3.1 split Monitor Takeover into its own package. A profile that ran a
+           pre-#614 build still holds this project's copy of the takeover bundle. It is not
+           loaded from here any more - TakeoverBootstrap.LoadBundle resolves purely relative to
+           the loading assembly with no fallback, so Y4NGZMonitorTakeover reads it from its OWN
+           plugin directory and a stale copy here is dead weight rather than a shadow. Retire it
+           the same way the pre-fold, pre-#416, pre-#429 and pre-#613 payloads above are retired.
+           Both names, because the loader probes .bundle first and falls back to .lethalbundle,
+           and the Copy below no longer produces either. -->
+      <SplitOutModuleAssets Include="$(DeployTarget)\monitortakeover.bundle;$(DeployTarget)\monitortakeover.lethalbundle" />
+      <!-- Contracted owns no loose Audio or Joystick payload after the split. Anything left
+           under these paths in its plugin directory is from an obsolete merged build. -->
+      <SplitOutModuleAssets Include="$(DeployTarget)\Audio\**\*.*;$(DeployTarget)\Assets\Joystick\**\*.*" />
+    </ItemGroup>
+    <Delete Files="@(LegacyFoldedModuleOutputs)" TreatErrorsAsWarnings="true" />
+    <Delete Files="@(SplitOutModuleAssets)" TreatErrorsAsWarnings="true" />
+    <!-- Copies the freshly patched DLL and records the deploy stamp. Shared with the
+         four sibling plugin projects; see src\Directory.Build.targets for why the
+         stamp exists. CallTarget, not DependsOnTargets: the copy must happen after
+         netcode-patch has rewritten $(TargetPath), not before the target body runs. -->
+    <CallTarget Targets="DeployY4NGZAssemblyWithStamp" />
+    <ItemGroup>
+      <!-- Wildcards over $(OutputPath) are how this deploy stays in step with the
+           <Content> list above, but a wildcard also happily picks up an artifact a
+           previous build left behind. Since #393 the CCTV, blood FX and core payloads
+           are produced by sibling projects into their own plugin directories, so any
+           copy of them still sitting in this project's obj/bin from the merged build
+           must not be deployed from here. Exclude them by name; the list is the
+           inverse of what those projects' own deploy targets now ship. -->
+      <CompanyOutputAssets Include="$(OutputPath)*.bundle;$(OutputPath)*.lethalbundle;$(OutputPath)*.animationbundle;$(OutputPath)*.stationbundle;$(OutputPath)*.turretbundle;$(OutputPath)*.shaderbundle;$(OutputPath)*.meshbundle;$(OutputPath)*.duskmod;$(OutputPath)*.json"
+                           Exclude="$(OutputPath)lethalcctv-*;$(OutputPath)y4ngz-cctv-*;$(OutputPath)y4ngz-outlineeffect.bundle;$(OutputPath)shipturret.turretbundle;$(OutputPath)camera-placement-reviews.json;$(OutputPath)y4ngz-bloodfx.bundle;$(OutputPath)y4ngz-bloodfx.manifest.json;$(OutputPath)interior-authored-placements.json;$(OutputPath)y4ngz_endgame_main.duskmod;$(OutputPath)y4ngz-fuel-chute.bundle;$(OutputPath)y4ngz-oil-refinery.bundle;$(OutputPath)y4ngz-fuel-items.bundle;$(OutputPath)monitortakeover.bundle;$(OutputPath)monitortakeover.lethalbundle" />
+      <CompanyBundyAudio Include="$(OutputPath)bundy-audio\*.wav" />
+      <CompanyContractAudio Include="$(OutputPath)ContractAudio\**\*.*" />
+      <CompanyContractImages Include="$(OutputPath)ContractImages\**\*.*" />
+      <!-- Same additive-copy hazard as every loose deploy tree, and sharper here: MainframeAudio
+           resolves each cue by base name across .wav/.ogg/.mp3, so a superseded .mp3 left
+           behind in the profile can shadow the .wav/.ogg that replaced it.
+           $(DeployTarget)\ContractAudio is fed exclusively by the assets\audio\contracts\**
+           globs, so anything there this build did not produce is stale by definition. -->
+      <DeployedContractAudio Include="$(DeployTarget)\ContractAudio\**\*.*" />
+      <ExpectedDeployedContractAudio Include="@(CompanyContractAudio->'$(DeployTarget)\ContractAudio\%(RecursiveDir)%(Filename)%(Extension)')" />
+      <StaleDeployedContractAudio Include="@(DeployedContractAudio)" Exclude="@(ExpectedDeployedContractAudio)" />
+    </ItemGroup>
+    <Delete Files="@(StaleDeployedContractAudio)" TreatErrorsAsWarnings="true" Condition="'@(CompanyContractAudio)' != ''" />
+    <Copy SourceFiles="@(CompanyOutputAssets)" DestinationFolder="$(DeployTarget)" SkipUnchangedFiles="true" Condition="'@(CompanyOutputAssets)' != ''" />
+    <MakeDir Directories="$(DeployTarget)\bundy-audio" Condition="'@(CompanyBundyAudio)' != ''" />
+    <Copy SourceFiles="@(CompanyBundyAudio)" DestinationFolder="$(DeployTarget)\bundy-audio" SkipUnchangedFiles="true" Condition="'@(CompanyBundyAudio)' != ''" />
+    <Copy SourceFiles="@(CompanyContractAudio)" DestinationFiles="@(CompanyContractAudio->'$(DeployTarget)\ContractAudio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(CompanyContractAudio)' != ''" />
+    <Copy SourceFiles="@(CompanyContractImages)" DestinationFiles="@(CompanyContractImages->'$(DeployTarget)\ContractImages\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(CompanyContractImages)' != ''" />
+    <Copy SourceFiles="$(OutputPath)bundy.bundle" DestinationFiles="$(DeployTarget)\bundy.bundle" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Condition="Exists('$(OutputPath)bundy.bundle')" />
+    <!-- The guard lives under the gitignored scripts\, so a freshly created worktree
+         never has it, and $(BundyBundleSourcePath) can be overridden by the untracked
+         bundy-bundle.local.props to a path that no longer exists. This Exec used to run
+         unconditionally, so in both cases every Release build exited 1 after a
+         completely successful deploy and the failure became routine to ignore - a
+         safety net that always fails is the same as no safety net. Run the guard only
+         when it can do its job, and say plainly when it is skipped, so a real guard
+         failure is still a red build and still means something. -->
+    <PropertyGroup>
+      <BundyDeployGuardScript>$(CompanyRepoRoot)\scripts\guard-bundy-bundle-deploy.ps1</BundyDeployGuardScript>
+      <BundyDeployGuardRunnable Condition="Exists('$(BundyDeployGuardScript)') and Exists('$(BundyBundleSourcePath)')">true</BundyDeployGuardRunnable>
+    </PropertyGroup>
+    <Warning Condition="'$(BundyDeployGuardRunnable)' != 'true' and !Exists('$(BundyDeployGuardScript)')"
+             Text="Bundy deploy guard skipped: $(BundyDeployGuardScript) is missing. scripts\ is gitignored, so it does not propagate to new worktrees; copy it in to re-enable the hash check." />
+    <Warning Condition="'$(BundyDeployGuardRunnable)' != 'true' and Exists('$(BundyDeployGuardScript)') and !Exists('$(BundyBundleSourcePath)')"
+             Text="Bundy deploy guard skipped: source bundle '$(BundyBundleSourcePath)' does not exist, so no bundy.bundle was deployed for it to verify. Check bundy-bundle.local.props." />
+    <Exec Condition="'$(BundyDeployGuardRunnable)' == 'true'"
+          Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(BundyDeployGuardScript)&quot; -SourceBundlePath &quot;$(BundyBundleSourcePath)&quot; -DeployBundlePath &quot;$(DeployTarget)\bundy.bundle&quot; -ExpectedSourceHash &quot;$(BundyBundleExpectedSha256)&quot;" />
+  </Target>
+
+</Project>
